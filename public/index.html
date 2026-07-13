@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFL Tracker</title>
+<meta name="description" content="NFL scores, standings, leaders, teams, and player profiles.">
+<meta name="theme-color" content="#101215">
+<meta name="color-scheme" content="dark light">
+<script>
+  (function () {
+    try { if (localStorage.getItem('sports-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<nav class="topnav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#/" aria-label="Tracker home"><span id="brand-main">NFL</span><b id="brand-accent">TRACKER</b></a>
+    <div class="nav-tabs">
+      <a data-nav="games" href="#/">Games</a>
+      <a data-nav="standings" href="#/standings">Standings</a>
+      <a data-nav="leaders" href="#/leaders">Leaders</a>
+      <a data-nav="teams" href="#/teams">Teams</a>
+    </div>
+    <span class="status-chip" id="status-chip"><span class="idle-dot"></span><span class="mono">connecting</span></span>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch theme">◐</button>
+  </div>
+</nav>
+<main id="view"></main>
+<footer class="site-foot"><div class="wrap"><b id="footer-title">NFL Tracker</b><span>Live data via ESPN public feeds through an edge cache.</span></div></footer>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
