@@ -9,6 +9,7 @@ const { default: worker } = await import(`data:text/javascript;base64,${Buffer.f
 test('ESPN requests identify the client and cache only successful responses', async t => {
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.match(url, /site\.api\.espn\.com/);
+    assert.equal(new URL(url).searchParams.get('_tracker'), '2');
     assert.equal(options.headers['user-agent'], 'curl/8.7.1');
     assert.equal(options.headers.accept, 'application/json');
     assert.equal(options.cf.cacheTtlByStatus['300-599'], -1);

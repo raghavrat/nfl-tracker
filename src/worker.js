@@ -26,8 +26,11 @@ const json = (value, ttl = 60, status = 200) => new Response(JSON.stringify(valu
 });
 
 async function fetchJSON(url, ttl = 60) {
+  // Bypass upstream errors cached before the request-header fix.
+  const upstream = new URL(url);
+  upstream.searchParams.set('_tracker', '2');
   // ESPN's edge rejects requests with the default Worker User-Agent.
-  const response = await fetch(url, {
+  const response = await fetch(upstream.toString(), {
     headers: { 'user-agent': 'curl/8.7.1', accept: 'application/json' },
     signal: AbortSignal.timeout(12000),
     cf: { cacheTtlByStatus: { '200-299': ttl, '300-599': -1 }, cacheEverything: true },
