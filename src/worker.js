@@ -1,10 +1,14 @@
+const now = new Date();
+// January and February belong to the season that began the previous year.
+const season = now.getUTCFullYear() - (now.getUTCMonth() < 2 ? 1 : 0);
+
 const CONFIG = {
   sport: 'football',
   league: 'nfl',
   name: 'NFL Tracker',
   shortName: 'NFL',
-  season: 2025,
-  scheduleSeason: 2026,
+  season,
+  scheduleSeason: season,
   seasonType: 2,
   leaderKeys: ['passingYards', 'rushingYards', 'receivingYards', 'passingTouchdowns', 'rushingTouchdowns', 'receivingTouchdowns', 'totalTackles', 'sacks', 'interceptions'],
   playerStatKeys: [
