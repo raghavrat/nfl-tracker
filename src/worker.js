@@ -1,14 +1,16 @@
-const now = new Date();
-// January and February belong to the season that began the previous year.
-const season = now.getUTCFullYear() - (now.getUTCMonth() < 2 ? 1 : 0);
+// Read the clock during a request; Workers do not provide wall time at startup.
+function currentSeason() {
+  const now = new Date();
+  return now.getUTCFullYear() - (now.getUTCMonth() < 2 ? 1 : 0);
+}
 
 const CONFIG = {
   sport: 'football',
   league: 'nfl',
   name: 'NFL Tracker',
   shortName: 'NFL',
-  season,
-  scheduleSeason: season,
+  get season() { return currentSeason(); },
+  get scheduleSeason() { return currentSeason(); },
   seasonType: 2,
   leaderKeys: ['passingYards', 'rushingYards', 'receivingYards', 'passingTouchdowns', 'rushingTouchdowns', 'receivingTouchdowns', 'totalTackles', 'sacks', 'interceptions'],
   playerStatKeys: [

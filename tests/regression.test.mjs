@@ -104,3 +104,15 @@ test('play rendering handles overtime, zero scores, missing data, and escapes fe
   context.data = { game: { state: 'pre' } };
   assert.match(vm.runInContext('playByPlay(data)', context), /after kickoff/);
 });
+
+test('season is computed during requests, after the Worker startup clock becomes available', async () => {
+  const context = vm.createContext({ Response, URL, Date: class extends Date { constructor() { super(0); } } });
+  vm.runInContext(source.replace('export default {', 'globalThis.worker = {'), context);
+  for (const [date, expected] of [['2026-09-15', 2026], ['2027-01-15', 2026], ['2027-03-15', 2027]]) {
+    context.Date = class extends Date { constructor() { super(date); } };
+    const response = await context.worker.fetch(new Request('https://nfl.ratnani.org/api/config'), {});
+    const config = await response.json();
+    assert.equal(config.season, expected);
+    assert.equal(config.scheduleSeason, expected);
+  }
+});
