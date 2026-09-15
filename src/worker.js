@@ -171,6 +171,25 @@ async function apiPlayer(id) {
   }, 600);
 }
 
+function normalizePlays(data) {
+  const plays = new Map();
+  const drives = [...(data.drives?.previous || []), ...(data.drives?.current ? [data.drives.current] : [])];
+  for (const drive of drives) for (const play of drive.plays || []) {
+    if (!play.id || !play.text) continue;
+    const key = String(play.id);
+    plays.set(key, {
+      id: key, sequence: Number(play.sequenceNumber) || 0,
+      period: play.period?.number ?? null, clock: play.clock?.displayValue ?? null,
+      text: play.text, type: play.type?.text ?? null,
+      teamId: play.start?.team?.id ?? drive.team?.id ?? null,
+      downDistance: play.start?.downDistanceText ?? null,
+      scoringPlay: Boolean(play.scoringPlay), turnover: Boolean(play.isTurnover),
+      homeScore: play.homeScore ?? null, awayScore: play.awayScore ?? null,
+    });
+  }
+  return [...plays.values()].sort((a, b) => b.sequence - a.sequence);
+}
+
 async function apiGame(id) {
   if (!/^\d+$/.test(String(id || ''))) return json({ error: 'invalid id' }, 10, 400);
   const data = await fetchJSON(`${SITE}/summary?event=${id}`, 30);
@@ -178,7 +197,7 @@ async function apiGame(id) {
   const event = normalizeEvent({ id, date: competition.date, competitions: [competition] });
   const teamStats = (data.boxscore?.teams || []).map(item => ({ teamId: item.team?.id ?? null, stats: (item.statistics || []).map(stat => ({ key: stat.name, label: stat.label ?? stat.displayName ?? stat.name, value: stat.displayValue ?? stat.value ?? null })) }));
   const leaders = (data.leaders || []).map(group => ({ teamId: group.team?.id ?? null, categories: (group.leaders || []).map(category => ({ label: category.displayName ?? category.name, leaders: (category.leaders || []).slice(0, 3).map(leader => ({ athleteId: leader.athlete?.id ?? null, name: leader.athlete?.displayName ?? null, value: leader.displayValue ?? leader.value ?? null })) })) }));
-  return json({ game: event, teamStats, leaders }, event.state === 'in' ? 15 : 300);
+  return json({ game: event, teamStats, leaders, plays: normalizePlays(data), updatedAt: new Date().toISOString() }, event.state === 'in' ? 15 : 300);
 }
 
 const routes = {

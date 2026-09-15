@@ -5,6 +5,7 @@ let teams = [];
 let teamsError = null;
 let teamsById = new Map();
 let routeToken = 0;
+let gameRefreshTimer = null;
 
 const esc = value => String(value == null ? '' : value).replace(/[<>&"']/g, char => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[char]);
 const safeUrl = value => /^https?:\/\//i.test(String(value || '')) ? String(value) : '#';
@@ -212,8 +213,21 @@ function gameLeaders(data) {
   }).join('');
 }
 
-async function renderGame(id, token) {
-  view.innerHTML = `<div class="view"><div class="wrap">${detailBack('All games', '#/')}${skeleton()}</div></div>`;
+function playByPlay(data) {
+  if (!data.plays?.length) return emptyState('No plays yet', data.game.state === 'pre' ? 'Play-by-play will appear after kickoff.' : 'Play-by-play is not available for this game yet.');
+  let period = null;
+  return `<ol class="play-list">${data.plays.map(play => {
+    const label = play.period > 4 ? (play.period === 5 ? 'OT' : `${play.period - 4}OT`) : play.period ? `Q${play.period}` : 'Play';
+    const heading = period !== play.period ? `<li class="play-period micro">${esc(label)}</li>` : '';
+    period = play.period;
+    const team = [data.game.away, data.game.home].find(team => String(team?.id) === String(play.teamId));
+    const score = play.scoringPlay && play.awayScore != null && play.homeScore != null ? `<strong class="play-score mono">${esc(data.game.away.abbr)} ${esc(play.awayScore)} · ${esc(data.game.home.abbr)} ${esc(play.homeScore)}</strong>` : '';
+    return `${heading}<li class="play-row${play.scoringPlay ? ' play-scoring' : ''}"><div class="play-time mono">${esc(play.clock || '—')}</div><div class="play-content"><div class="play-meta micro">${esc([team?.abbr, play.downDistance || play.type].filter(Boolean).join(' · '))}${play.scoringPlay ? '<span class="tag">Score</span>' : play.turnover ? '<span class="tag">Turnover</span>' : ''}</div><p>${esc(play.text)}</p>${score}</div></li>`;
+  }).join('')}</ol>`;
+}
+
+async function renderGame(id, token, refresh = false) {
+  if (!refresh) view.innerHTML = `<div class="view"><div class="wrap">${detailBack('All games', '#/')}${skeleton()}</div></div>`;
   try {
     const data = await fetchJSON('/api/game?id=' + encodeURIComponent(id));
     if (token !== routeToken) return;
@@ -222,10 +236,20 @@ async function renderGame(id, token) {
     const leaders = gameLeaders(data);
     view.innerHTML = `<div class="view"><div class="wrap">${detailBack('All games', '#/')}
       <header class="match-hero"><span class="tag${game.state === 'in' ? ' live' : ''}">${esc(game.detail || game.status || '')}</span><div class="match-score"><div>${teamLogo(game.away, 70)}${teamLink(game.away, 'match-team')}</div><strong class="mono">${played ? `${esc(game.away.score ?? '')} - ${esc(game.home.score ?? '')}` : 'vs'}</strong><div>${teamLogo(game.home, 70)}${teamLink(game.home, 'match-team')}</div></div><p>${esc(fmtDate(game.date))} · ${esc(fmtTime(game.date))} · ${esc(game.venue || '')}</p></header>
+      <section class="detail-section"><div class="section-head"><h2>Play-by-play</h2><span class="micro muted">Latest first</span></div><p class="play-update muted" id="play-update" role="status">${game.state === 'in' ? 'Live · Updates every 30 seconds' : game.state === 'pre' ? 'Waiting for kickoff · Updates every 30 seconds' : 'Final'} · Updated ${esc(fmtTime(data.updatedAt))}</p>${playByPlay(data)}</section>
       <section class="detail-section"><div class="section-head"><h2>Team statistics</h2></div><div class="compare-head"><span>${esc(game.away.abbr)}</span><span>${esc(game.home.abbr)}</span></div><div class="compare-list">${gameStats(data) || emptyState('No stats', 'Game statistics are not posted yet.')}</div></section>
       ${leaders ? `<section class="detail-section"><div class="section-head"><h2>Game leaders</h2></div><div class="game-leaders">${leaders}</div></section>` : ''}
     </div></div>`;
-  } catch (error) { if (token === routeToken) view.innerHTML = `<div class="view"><div class="wrap">${errorState(error.message)}</div></div>`; }
+    updateStatus({ anyLive: game.state === 'in' });
+    if (game.state !== 'post') gameRefreshTimer = setTimeout(() => renderGame(id, token, true), 30000);
+  } catch (error) {
+    if (token !== routeToken) return;
+    if (refresh) {
+      const note = document.getElementById('play-update');
+      if (note) note.textContent = 'Update failed · Showing the last loaded plays. Retrying in 30 seconds.';
+      gameRefreshTimer = setTimeout(() => renderGame(id, token, true), 30000);
+    } else view.innerHTML = `<div class="view"><div class="wrap">${errorState(error.message)}</div></div>`;
+  }
 }
 
 function updateStatus(data) {
@@ -238,6 +262,7 @@ function setNav(active) {
 }
 
 function router() {
+  clearTimeout(gameRefreshTimer);
   const token = ++routeToken;
   const hash = location.hash || '#/';
   if (/^#\/team\//.test(hash)) { setNav('teams'); return renderTeam(decodeURIComponent(hash.replace('#/team/', '')), token); }

@@ -225,3 +225,15 @@ th:nth-child(2), td:nth-child(2) { text-align: left; }
   .compare-row { grid-template-columns: 1fr minmax(100px, 1.4fr) 1fr; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+/* Play-by-play */
+.play-update { font-size: 12px; margin: -6px 0 18px; }
+.play-list { list-style: none; }
+.play-period { padding: 18px 0 10px; color: var(--muted); border-bottom: 1px solid var(--line-strong); }
+.play-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; padding: 18px 12px; border-bottom: 1px solid var(--line); }
+.play-time { color: var(--muted); font-size: 12px; padding-top: 2px; }
+.play-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin-bottom: 6px; }
+.play-content p { font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.play-scoring { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.play-score { display: block; color: var(--accent); font-size: 12px; margin-top: 8px; }
+@media (max-width: 600px) { .play-row { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; padding: 14px 8px; } }
