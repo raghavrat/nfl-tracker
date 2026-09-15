@@ -2,6 +2,7 @@ const view = document.getElementById('view');
 const statusChip = document.getElementById('status-chip');
 let config = null;
 let teams = [];
+let teamsError = null;
 let teamsById = new Map();
 let routeToken = 0;
 
@@ -16,7 +17,7 @@ async function fetchJSON(url, timeout = 15000) {
   try {
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: controller.signal });
     if (!response.ok) throw new Error(`Server responded ${response.status}`);
-    return response.json();
+    return await response.json();
   } finally { clearTimeout(timer); }
 }
 
@@ -133,6 +134,10 @@ function teamCard(team) {
 }
 
 function renderTeams() {
+  if (teamsError) {
+    view.innerHTML = `<div class="view"><div class="wrap">${errorState('Team data is temporarily unavailable. Please reload to retry.')}</div></div>`;
+    return;
+  }
   view.innerHTML = `<div class="view"><div class="wrap"><div class="page-head"><h1>Teams</h1><p>Browse every ${esc(config.shortName)} team, roster, and schedule.</p></div><div class="teams-grid">${teams.map(teamCard).join('')}</div></div></div>`;
 }
 
@@ -256,7 +261,7 @@ function setupTheme() {
 async function bootstrap() {
   setupTheme();
   try {
-    const [configData, teamData] = await Promise.all([fetchJSON('/api/config'), fetchJSON('/api/teams')]);
+    const [configData, teamData] = await Promise.all([fetchJSON('/api/config'), fetchJSON('/api/teams').catch(error => { teamsError = error; return { teams: [] }; })]);
     config = configData;
     teams = teamData.teams || [];
     teamsById = new Map(teams.map(team => [String(team.id), team]));
@@ -264,8 +269,8 @@ async function bootstrap() {
     document.getElementById('footer-title').textContent = config.name;
     document.title = config.name;
     window.addEventListener('hashchange', router);
+    updateStatus(null);
     router();
-    fetchJSON('/api/games').then(updateStatus).catch(() => {});
   } catch (error) { view.innerHTML = `<div class="view"><div class="wrap">${errorState(error.message)}</div></div>`; }
 }
 

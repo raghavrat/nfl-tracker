@@ -26,7 +26,12 @@ const json = (value, ttl = 60, status = 200) => new Response(JSON.stringify(valu
 });
 
 async function fetchJSON(url, ttl = 60) {
-  const response = await fetch(url, { cf: { cacheTtl: ttl, cacheEverything: true } });
+  // ESPN's edge rejects requests with the default Worker User-Agent.
+  const response = await fetch(url, {
+    headers: { 'user-agent': 'curl/8.7.1', accept: 'application/json' },
+    signal: AbortSignal.timeout(12000),
+    cf: { cacheTtlByStatus: { '200-299': ttl, '300-599': -1 }, cacheEverything: true },
+  });
   if (!response.ok) {
     const error = new Error(`upstream ${response.status}`);
     error.upstreamStatus = response.status;
